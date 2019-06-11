@@ -1,6 +1,6 @@
 {
   "name": "rss-viewer",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "description": "RSS reader",
   "keywords": [
     "RSS",
@@ -42,6 +42,7 @@
     "html-webpack-plugin": "^3.2.0",
     "jest": "^24.8.0",
     "jquery": "^3.4.1",
+    "js-beautify": "^1.10.0",
     "popper.js": "^1.15.0",
     "style-loader": "^0.23.1",
     "surge": "^0.21.3",
