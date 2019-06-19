@@ -20,6 +20,7 @@ module.exports = {
     new CleanWebpackPlugin(),
     new HtmlWebpackPlugin({
       template: 'src/template.html',
+      favicon: 'src/favicon.ico',
       minify: {
         collapseWhitespace: true,
         removeScriptTypeAttributes: true,
