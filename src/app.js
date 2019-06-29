@@ -1,6 +1,6 @@
 import { isURL } from 'validator';
 import { watch } from 'melanke-watchjs';
-import { some } from 'lodash';
+import _some from 'lodash/some';
 import getFeedData from './connector';
 import * as View from './view';
 
@@ -70,7 +70,7 @@ export default () => {
     } else {
       const feedData = state.feeds.get(url);
       list = feedData.articlesList;
-      articlesToAdd = updatedData.articles.filter(article => !some(feedData.articles, article));
+      articlesToAdd = updatedData.articles.filter(article => !_some(feedData.articles, article));
     }
     View.addArticlesToList(articlesToAdd, list);
     state.feeds.set(url, { ...updatedData, articlesList: list });

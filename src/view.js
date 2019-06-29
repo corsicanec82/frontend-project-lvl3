@@ -45,7 +45,7 @@ export const createArticlesList = () => {
 
 export const addArticlesToList = (articles, list) => {
   const listItems = articles.map(createArticle);
-  list.append(...listItems);
+  list.prepend(...listItems);
 };
 
 export const createModal = () => {
