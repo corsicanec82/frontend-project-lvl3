@@ -1,4 +1,4 @@
-export const createFeedElement = (title, description) => {
+export const createFeed = (title, description) => {
   const headline = document.createElement('h3');
   headline.textContent = title;
 
@@ -12,36 +12,40 @@ export const createFeedElement = (title, description) => {
   return feed;
 };
 
-export const createArticlesList = (articles) => {
-  const listItems = articles.map((article) => {
-    const link = document.createElement('a');
-    link.textContent = article.title;
-    link.href = article.link;
-    link.target = '_blank';
+export const createArticle = (article) => {
+  const link = document.createElement('a');
+  link.textContent = article.title;
+  link.href = article.link;
+  link.target = '_blank';
 
-    const description = document.createElement('button');
-    description.type = 'button';
-    description.setAttribute('data-toggle', 'modal');
-    description.setAttribute('data-target', '#modalCenter');
-    description.className = 'btn btn-info btn-sm ml-3';
-    description.textContent = 'Show description';
-    description.addEventListener('click', (e) => {
-      const modal = document.querySelector(e.target.dataset.target);
-      modal.querySelector('.modal-title').textContent = article.title;
-      modal.querySelector('.modal-body').textContent = article.description;
-    });
-
-    const item = document.createElement('li');
-    item.className = 'list-group-item';
-    item.append(link, description);
-    return item;
+  const showDescription = document.createElement('button');
+  showDescription.type = 'button';
+  showDescription.setAttribute('data-toggle', 'modal');
+  showDescription.setAttribute('data-target', '#modalCenter');
+  showDescription.className = 'btn btn-info btn-sm ml-3';
+  showDescription.textContent = 'Show description';
+  showDescription.addEventListener('click', (e) => {
+    const modal = document.querySelector(e.target.dataset.target);
+    modal.querySelector('.modal-title').textContent = article.title;
+    modal.querySelector('.modal-body').textContent = article.description;
   });
 
+  const item = document.createElement('li');
+  item.className = 'list-group-item';
+  item.append(link, showDescription);
+
+  return item;
+};
+
+export const createArticlesList = () => {
   const list = document.createElement('ul');
   list.className = 'list-group';
-  list.append(...listItems);
-
   return list;
+};
+
+export const addArticlesToList = (articles, list) => {
+  const listItems = articles.map(createArticle);
+  list.append(...listItems);
 };
 
 export const createModal = () => {

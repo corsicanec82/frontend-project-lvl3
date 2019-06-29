@@ -1,110 +1,104 @@
 import { isURL } from 'validator';
 import { watch } from 'melanke-watchjs';
-import axios from 'axios';
-import parse from './parser';
-import * as Elements from './elements';
-
-const corsProxy = 'https://cors-anywhere.herokuapp.com/';
+import { some } from 'lodash';
+import getFeedData from './connector';
+import * as View from './view';
 
 export default () => {
   const state = {
-    isValidURL: null,
-    addedFeedsURL: [],
-    isQuery: false,
-    addButton: null,
-    response: {
+    validURL: null,
+    feeds: new Map(),
+    query: {
+      process: false,
+      response: null,
       data: null,
-      result: null,
     },
   };
 
-  Elements.createModal();
-  const alert = Elements.createAlert();
-  const spinner = Elements.createSpinner();
+  View.createModal();
+  const alert = View.createAlert();
+  const spinner = View.createSpinner();
 
-  const inputRSS = document.getElementById('inputRSS');
+  const inputRSS = document.querySelector('#inputRSS');
   const form = inputRSS.closest('form');
-  const addFeed = form.querySelector('button');
   const container = form.closest('div');
+  const addFeed = form.querySelector('button');
 
-  watch(state, 'isValidURL', () => {
-    if (state.isValidURL) {
+  watch(state, 'validURL', () => {
+    if (state.validURL) {
       inputRSS.classList.remove('is-invalid');
-      return;
+    } else {
+      inputRSS.classList.add('is-invalid');
     }
-    inputRSS.classList.add('is-invalid');
   });
 
-  watch(state, 'isQuery', () => {
-    if (state.isQuery) {
-      state.addButton.disabled = true;
-      state.addButton.innerHTML = ' Loading...';
-      state.addButton.prepend(spinner);
-      return;
+  watch(state.query, 'process', () => {
+    if (state.query.process) {
+      addFeed.disabled = true;
+      addFeed.innerHTML = ' Loading...';
+      addFeed.prepend(spinner);
+    } else {
+      addFeed.disabled = false;
+      addFeed.innerHTML = 'Add Feed';
     }
-    state.addButton.disabled = false;
-    state.addButton.innerHTML = 'Add Feed';
   });
 
-  watch(state.response, 'result', () => {
-    if (state.response.result === null) {
+  watch(state.query, 'response', () => {
+    if (state.query.response === null) {
       return;
     }
-
-    if (state.response.result !== 'success') {
-      alert.textContent = state.response.result;
+    if (state.query.response === 'success') {
+      state.query.response = null;
+      inputRSS.value = '';
+      alert.remove();
+    } else {
+      alert.textContent = state.query.response;
       inputRSS.before(alert);
-      return;
     }
+  });
 
-    state.response.result = null;
-    inputRSS.value = '';
-    alert.remove();
-
-    const { title, description, articles } = state.response.data;
-    const feed = Elements.createFeedElement(title, description);
-    if (articles.length !== 0) {
-      feed.append(Elements.createArticlesList(articles));
+  watch(state.query, 'data', () => {
+    let list;
+    let articlesToAdd;
+    const { url, data: updatedData } = state.query.data;
+    if (!state.feeds.has(url)) {
+      articlesToAdd = updatedData.articles;
+      const feed = View.createFeed(updatedData.title, updatedData.description);
+      list = View.createArticlesList();
+      feed.append(list);
+      container.after(feed);
+    } else {
+      const feedData = state.feeds.get(url);
+      list = feedData.articlesList;
+      articlesToAdd = updatedData.articles.filter(article => !some(feedData.articles, article));
     }
-    container.after(feed);
+    View.addArticlesToList(articlesToAdd, list);
+    state.feeds.set(url, { ...updatedData, articlesList: list });
   });
 
   const inputRSSKeyupHandler = (e) => {
-    const { value } = e.target;
-    state.isValidURL = isURL(value) && !state.addedFeedsURL.includes(value);
+    const url = e.target.value;
+    state.validURL = isURL(url) && !state.feeds.has(url);
   };
 
-  const addFeedClickHandler = (e) => {
+  const changeQueryDataState = (url, error, data) => {
+    if (error === null) {
+      state.query.data = { url, data };
+      setTimeout(getFeedData, 5000, url, changeQueryDataState);
+    }
+  };
+
+  const addFeedClickHandler = () => {
     const url = inputRSS.value;
-    if (!state.isValidURL) {
-      state.response.result = 'Invalid link or feed already added.';
+    if (!state.validURL) {
+      state.query.response = 'Invalid link or feed already added.';
       return;
     }
-    state.isQuery = true;
-    state.addButton = e.target;
-    axios(`${corsProxy}${url}`)
-      .then((response) => {
-        const parseResult = parse(response.data);
-        if (!parseResult) {
-          state.response.result = 'The resulting data is not the appropriate format.';
-          return;
-        }
-        state.response.data = parseResult;
-        state.addedFeedsURL.push(url);
-        state.response.result = 'success';
-      })
-      .catch((error) => {
-        if (error.response) {
-          state.response.result = 'RSS server responded with an error.';
-        } else if (error.request) {
-          state.response.result = 'The specified address is not available.';
-        } else {
-          state.response.result = 'Unknown error. Contact the administrator.';
-        }
-      })
-      .finally(() => {
-        state.isQuery = false;
-      });
+    state.query.process = true;
+    getFeedData(url, changeQueryDataState, (error) => {
+      state.query.process = false;
+      state.query.response = error === null ? 'success' : error;
+    });
   };
 
   form.onsubmit = () => false;
