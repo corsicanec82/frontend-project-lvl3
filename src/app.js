@@ -1,4 +1,4 @@
-import { isURL } from 'validator';
+import isURL from 'validator/lib/isURL';
 import { watch } from 'melanke-watchjs';
 import _some from 'lodash/some';
 import getFeedData from './connector';
@@ -48,7 +48,6 @@ export default () => {
       return;
     }
     if (state.query.response === 'success') {
-      state.query.response = null;
       inputRSS.value = '';
       alert.remove();
     } else {
@@ -81,21 +80,23 @@ export default () => {
     state.validURL = isURL(url) && !state.feeds.has(url);
   };
 
-  const changeQueryDataState = (url, error, data) => {
-    if (error === null) {
-      state.query.data = { url, data };
-      setTimeout(getFeedData, 5000, url, changeQueryDataState);
+  const changeQueryData = (url, error, data) => {
+    if (error !== null) {
+      return;
     }
+    state.query.data = { url, data };
+    setTimeout(getFeedData, 5000, url, changeQueryData);
   };
 
   const addFeedClickHandler = () => {
+    state.query.response = null;
     const url = inputRSS.value;
     if (!state.validURL) {
       state.query.response = 'Invalid link or feed already added.';
       return;
     }
     state.query.process = true;
-    getFeedData(url, changeQueryDataState, (error) => {
+    getFeedData(url, changeQueryData, (error) => {
       state.query.process = false;
       state.query.response = error === null ? 'success' : error;
     });
