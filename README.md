@@ -1,5 +1,6 @@
 # RSS Reader
 *frontend application for reading rss feeds.*
+
 The application allows you to read news feeds. Supports automatic update of the list of articles.
 
 [![Maintainability](https://api.codeclimate.com/v1/badges/f45504e41266e1035bec/maintainability)](https://codeclimate.com/github/corsicanec82/frontend-project-lvl3/maintainability)
