@@ -25,8 +25,8 @@ module.exports = {
   plugins: [
     new CleanWebpackPlugin(),
     new HtmlWebpackPlugin({
-      template: 'src/template.html',
-      favicon: 'src/favicon.ico',
+      template: 'template.html',
+      favicon: 'favicon.ico',
       minify: {
         collapseWhitespace: true,
         removeScriptTypeAttributes: true,

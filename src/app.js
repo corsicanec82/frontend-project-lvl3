@@ -2,22 +2,21 @@ import isURL from 'validator/lib/isURL';
 import { watch } from 'melanke-watchjs';
 import _some from 'lodash/some';
 import getFeedData from './connector';
-import * as View from './view';
+import * as view from './view';
 
 export default () => {
   const state = {
     validURL: null,
     feeds: new Map(),
     query: {
-      process: false,
-      response: null,
-      data: null,
+      state: null,
+      result: null,
     },
   };
 
-  View.createModal();
-  const alert = View.createAlert();
-  const spinner = View.createSpinner();
+  view.createModal();
+  const alert = view.createAlert();
+  const spinner = view.createSpinner();
 
   const inputRSS = document.querySelector('#inputRSS');
   const form = inputRSS.closest('form');
@@ -32,47 +31,45 @@ export default () => {
     }
   });
 
-  watch(state.query, 'process', () => {
-    if (state.query.process) {
-      addFeed.disabled = true;
-      addFeed.innerHTML = ' Loading...';
-      addFeed.prepend(spinner);
-    } else {
-      addFeed.disabled = false;
-      addFeed.innerHTML = 'Add Feed';
+  watch(state.query, 'state', () => {
+    switch (state.query.state) {
+      case 'processing':
+        addFeed.disabled = true;
+        addFeed.innerHTML = ' Loading...';
+        addFeed.prepend(spinner);
+        break;
+      case 'backgroundProcessing':
+        break;
+      case 'failed':
+        alert.textContent = state.query.result;
+        inputRSS.before(alert);
+        addFeed.disabled = false;
+        addFeed.innerHTML = 'Add Feed';
+        break;
+      case 'backgroundFiled':
+        break;
+      case 'finished': {
+        const { url, data, articlesToAdd } = state.query.result;
+        const feed = view.createFeed(data.title, data.description);
+        const list = view.createArticlesList(url);
+        view.addArticlesToList(articlesToAdd, list);
+        feed.append(list);
+        container.after(feed);
+        inputRSS.value = '';
+        alert.remove();
+        addFeed.disabled = false;
+        addFeed.innerHTML = 'Add Feed';
+        break;
+      }
+      case 'backgroundFinished': {
+        const { url, articlesToAdd } = state.query.result;
+        const list = document.getElementById(url);
+        view.addArticlesToList(articlesToAdd, list);
+        break;
+      }
+      default:
+        throw new RangeError('(state.query.state): Invalid value.');
     }
-  });
-
-  watch(state.query, 'response', () => {
-    if (state.query.response === null) {
-      return;
-    }
-    if (state.query.response === 'success') {
-      inputRSS.value = '';
-      alert.remove();
-    } else {
-      alert.textContent = state.query.response;
-      inputRSS.before(alert);
-    }
-  });
-
-  watch(state.query, 'data', () => {
-    let list;
-    let articlesToAdd;
-    const { url, data: updatedData } = state.query.data;
-    if (!state.feeds.has(url)) {
-      articlesToAdd = updatedData.articles;
-      const feed = View.createFeed(updatedData.title, updatedData.description);
-      list = View.createArticlesList();
-      feed.append(list);
-      container.after(feed);
-    } else {
-      const feedData = state.feeds.get(url);
-      list = feedData.articlesList;
-      articlesToAdd = updatedData.articles.filter(article => !_some(feedData.articles, article));
-    }
-    View.addArticlesToList(articlesToAdd, list);
-    state.feeds.set(url, { ...updatedData, articlesList: list });
   });
 
   const inputRSSKeyupHandler = (e) => {
@@ -81,28 +78,40 @@ export default () => {
   };
 
   const changeQueryData = (url, error, data) => {
+    const addNewFeed = !state.feeds.has(url);
     if (error !== null) {
+      state.query.result = error;
+      state.query.state = addNewFeed ? 'failed' : 'backgroundFiled';
       return;
     }
-    state.query.data = { url, data };
-    setTimeout(getFeedData, 5000, url, changeQueryData);
+    const result = { url, data };
+    if (addNewFeed) {
+      result.articlesToAdd = data.articles;
+    } else {
+      const feedData = state.feeds.get(url);
+      result.articlesToAdd = data.articles.filter(article => !_some(feedData.articles, article));
+    }
+    state.query.result = result;
+    state.feeds.set(url, data);
+    state.query.state = addNewFeed ? 'finished' : 'backgroundFinished';
+    setTimeout(() => {
+      state.query.state = 'backgroundProcessing';
+      getFeedData(url, changeQueryData);
+    }, 5000);
   };
 
-  const addFeedClickHandler = () => {
-    state.query.response = null;
+  const addFeedClickHandler = (e) => {
+    e.preventDefault();
     const url = inputRSS.value;
     if (!state.validURL) {
-      state.query.response = 'Invalid link or feed already added.';
+      state.query.result = 'Invalid link or feed already added.';
+      state.query.state = 'failed';
       return;
     }
-    state.query.process = true;
-    getFeedData(url, changeQueryData, (error) => {
-      state.query.process = false;
-      state.query.response = error === null ? 'success' : error;
-    });
+    state.query.state = 'processing';
+    getFeedData(url, changeQueryData);
   };
 
-  form.onsubmit = () => false;
   inputRSS.addEventListener('keyup', inputRSSKeyupHandler);
   addFeed.addEventListener('click', addFeedClickHandler);
 };

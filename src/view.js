@@ -37,9 +37,11 @@ export const createArticle = (article) => {
   return item;
 };
 
-export const createArticlesList = () => {
+export const createArticlesList = (id) => {
   const list = document.createElement('ul');
+  list.id = id;
   list.className = 'list-group';
+
   return list;
 };
 

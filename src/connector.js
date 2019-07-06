@@ -3,7 +3,7 @@ import parse from './parser';
 
 const corsProxy = 'https://cors-anywhere.herokuapp.com/';
 
-export default (url, cbData, cbProcess) => {
+export default (url, cb) => {
   const result = {
     error: null,
     data: null,
@@ -28,9 +28,6 @@ export default (url, cbData, cbProcess) => {
       }
     })
     .finally(() => {
-      cbData(url, result.error, result.data);
-      if (cbProcess) {
-        cbProcess(result.error);
-      }
+      cb(url, result.error, result.data);
     });
 };
