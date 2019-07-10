@@ -1,17 +1,3 @@
-export const createFeed = (title, description) => {
-  const headline = document.createElement('h3');
-  headline.textContent = title;
-
-  const content = document.createElement('p');
-  content.textContent = description;
-
-  const feed = document.createElement('div');
-  feed.className = 'jumbotron';
-  feed.append(headline, description);
-
-  return feed;
-};
-
 export const createArticle = (article) => {
   const link = document.createElement('a');
   link.textContent = article.title;
@@ -51,59 +37,77 @@ export const addArticlesToList = (articles, list) => {
 };
 
 export const createModal = () => {
-  const headline = document.createElement('h5');
-  headline.className = 'modal-title';
+  const modal = document.createElement('div');
+  modal.className = 'modal fade';
+  modal.id = 'modalCenter';
+  modal.tabIndex = '-1';
+  modal.setAttribute('role', 'dialog');
+  modal.setAttribute('aria-labelledby', 'exampleModalCenterTitle');
+  modal.setAttribute('aria-hidden', 'true');
+  modal.innerHTML = [
+    '<div class="modal-dialog modal-dialog-centered" role="document">',
+    '<div class="modal-content">',
+    '<div class="modal-header"><h5 class="modal-title"></h5></div>',
+    '<div class="modal-body"></div>',
+    '<div class="modal-footer">',
+    '<button class="btn btn-secondary" data-dismiss="modal">Close</button>',
+    '</div>',
+    '</div>',
+    '</div>',
+  ].join('');
 
-  const divHeader = document.createElement('div');
-  divHeader.className = 'modal-header';
-  divHeader.append(headline);
-
-  const divBody = document.createElement('div');
-  divBody.className = 'modal-body';
-
-  const buttonClose = document.createElement('button');
-  buttonClose.className = 'btn btn-secondary';
-  buttonClose.setAttribute('data-dismiss', 'modal');
-  buttonClose.textContent = 'Close';
-
-  const divFooter = document.createElement('div');
-  divFooter.className = 'modal-footer';
-  divFooter.append(buttonClose);
-
-  const divContent = document.createElement('div');
-  divContent.className = 'modal-content';
-  divContent.append(divHeader, divBody, divFooter);
-
-  const divDocument = document.createElement('div');
-  divDocument.className = 'modal-dialog modal-dialog-centered';
-  divDocument.setAttribute('role', 'document');
-  divDocument.append(divContent);
-
-  const divModal = document.createElement('div');
-  divModal.className = 'modal fade';
-  divModal.id = 'modalCenter';
-  divModal.tabIndex = '-1';
-  divModal.setAttribute('role', 'dialog');
-  divModal.setAttribute('aria-labelledby', 'exampleModalCenterTitle');
-  divModal.setAttribute('aria-hidden', 'true');
-  divModal.append(divDocument);
-
-  document.body.prepend(divModal);
+  document.body.prepend(modal);
 };
 
 export const createAlert = () => {
   const alert = document.createElement('div');
   alert.setAttribute('role', 'alert');
-  alert.className = 'alert alert-danger';
+  alert.className = 'alert alert-danger d-none';
+
+  document.getElementById('inputRSS').before(alert);
 
   return alert;
 };
 
-export const createSpinner = () => {
-  const spinner = document.createElement('span');
-  spinner.className = 'spinner-border spinner-border-sm';
-  spinner.setAttribute('role', 'status');
-  spinner.setAttribute('aria-hidden', 'true');
+export const createFeed = (title, description, articlesToAdd, url) => {
+  const list = createArticlesList(url);
+  addArticlesToList(articlesToAdd, list);
 
-  return spinner;
+  const feed = document.createElement('div');
+  feed.className = 'jumbotron';
+  feed.innerHTML = `<h3>${title}</h3><p>${description}</p>`;
+  feed.append(list);
+
+  document.querySelector('.container div').after(feed);
+};
+
+export const updateFeed = (articlesToAdd, url) => {
+  const list = document.getElementById(url);
+  addArticlesToList(articlesToAdd, list);
+};
+
+export const showProcessing = (button) => {
+  const el = button;
+  el.disabled = true;
+  el.innerHTML = [
+    '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>',
+    ' Loading...',
+  ].join('');
+};
+
+export const hideProcessing = (button) => {
+  const el = button;
+  el.disabled = false;
+  el.innerHTML = 'Add Feed';
+};
+
+export const showAlert = (alert, text) => {
+  const el = alert;
+  el.textContent = text;
+  el.classList.remove('d-none');
+};
+
+export const hideAlert = (alert) => {
+  const el = alert;
+  el.classList.add('d-none');
 };
