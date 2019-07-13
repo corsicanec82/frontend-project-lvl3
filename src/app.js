@@ -1,121 +1,101 @@
 import isURL from 'validator/lib/isURL';
 import { watch } from 'melanke-watchjs';
 import _some from 'lodash/some';
-import getFeedData from './connector';
-import * as view from './view';
+import _has from 'lodash/has';
+import _isEqual from 'lodash/isEqual';
+import axios from 'axios';
+import parse from './parser';
+import View from './view';
+
+const getFeedData = (url, validUrl = true) => {
+  if (!validUrl) {
+    return Promise.reject(new Error('Invalid link or feed already added'));
+  }
+  return axios(`https://cors-anywhere.herokuapp.com/${url}`).then(response => parse(response.data));
+};
 
 export default () => {
   const state = {
-    validURL: null,
-    feeds: new Map(),
+    validUrl: null,
+    feeds: {},
+    diffs: {},
     query: {
       state: null,
-      result: null,
-    },
-    backgroundQuery: {
-      state: null,
-      result: null,
+      response: null,
     },
   };
 
-  view.createModal();
-  const alert = view.createAlert();
-  const inputRSS = document.getElementById('inputRSS');
-  const form = inputRSS.closest('form');
-  const addFeedButton = form.querySelector('button');
+  const view = new View();
 
-  watch(state, 'validURL', () => {
-    if (state.validURL) {
-      inputRSS.classList.remove('is-invalid');
-    } else {
-      inputRSS.classList.add('is-invalid');
-    }
-  });
-
-  watch(state.backgroundQuery, 'state', () => {
-    switch (state.backgroundQuery.state) {
-      case 'processing':
-        break;
-      case 'finished': {
-        const { url, articles } = state.backgroundQuery.result;
-        view.updateFeed(articles, url);
-        break;
-      }
-      default:
-        throw new RangeError('(state.backgroundQuery.state): Invalid value.');
-    }
+  watch(state, 'validUrl', () => {
+    view.setInvalidInput(!state.validUrl);
   });
 
   watch(state.query, 'state', () => {
     switch (state.query.state) {
       case 'processing':
-        view.showProcessing(addFeedButton);
-        break;
-      case 'failed':
-        view.showAlert(alert, state.query.result);
-        view.hideProcessing(addFeedButton);
+        view.showProcessing();
         break;
       case 'finished': {
-        const { url, data } = state.query.result;
-        view.createFeed(data.title, data.description, data.articles, url);
-        inputRSS.value = '';
-        view.hideAlert(alert);
-        view.hideProcessing(addFeedButton);
+        const { url, data } = state.query.response;
+        View.createFeed(data.title, data.description, data.articles, url);
+        view.hideAlert();
+        view.clearInput();
+        view.hideProcessing();
         break;
       }
+      case 'filed':
+        view.showAlert(state.query.response);
+        view.clearInput();
+        view.hideProcessing();
+        break;
       default:
         throw new RangeError('(state.query.state): Invalid value.');
     }
   });
 
-  const inputRSSKeyupHandler = (e) => {
-    const url = e.target.value;
-    state.validURL = isURL(url) && !state.feeds.has(url);
-  };
-
-  const updateFeed = (url, error, data) => {
-    if (error !== null) {
+  watch(state.diffs, (url, action) => {
+    if (action !== 'set') {
       return;
     }
-    const feedData = state.feeds.get(url);
-    const articles = data.articles.filter(article => !_some(feedData.articles, article));
-    state.backgroundQuery.result = { url, articles };
-    state.feeds.set(url, data);
-    state.backgroundQuery.state = 'finished';
-    setTimeout(() => {
-      state.backgroundQuery.state = 'processing';
-      getFeedData(url, updateFeed);
-    }, 5000);
+    View.updateFeed(url, state.diffs[url]);
+  }, 0, true);
+
+  const inputUrlKeyUpHandler = ({ target: { value } }) => {
+    state.validUrl = isURL(value) && !_has(state.feeds, value);
   };
 
-  const addFeed = (url, error, data) => {
-    if (error !== null) {
-      state.query.result = error;
-      state.query.state = 'failed';
-      return;
-    }
-    state.query.result = { url, data };
-    state.feeds.set(url, data);
-    state.query.state = 'finished';
+  const updateFeed = (url) => {
     setTimeout(() => {
-      state.backgroundQuery.state = 'processing';
-      getFeedData(url, updateFeed);
+      getFeedData(url).then((data) => {
+        if (!_isEqual(state.feeds[url].articles, data.articles)) {
+          state.diffs[url] = data.articles.filter(item => !_some(state.feeds[url].articles, item));
+          state.feeds[url] = data;
+        }
+        updateFeed(url);
+      });
     }, 5000);
   };
 
   const submitHandler = (e) => {
     e.preventDefault();
-    const data = new FormData(e.target);
-    const url = data.get('feedUrl');
-    if (!state.validURL) {
-      state.query.result = 'Invalid link or feed already added.';
-      state.query.state = 'failed';
-      return;
-    }
+    const formData = new FormData(e.target);
+    const url = formData.get('inputUrl');
     state.query.state = 'processing';
-    getFeedData(url, addFeed);
+    getFeedData(url, state.validUrl)
+      .then((data) => {
+        state.feeds[url] = data;
+        state.diffs[url] = null;
+        state.query.response = { url, data };
+        state.query.state = 'finished';
+        updateFeed(url);
+      })
+      .catch((error) => {
+        state.query.response = error.message;
+        state.query.state = 'filed';
+      });
   };
 
-  inputRSS.addEventListener('keyup', inputRSSKeyupHandler);
-  form.addEventListener('submit', submitHandler);
+  view.inputUrl.addEventListener('keyup', inputUrlKeyUpHandler);
+  view.form.addEventListener('submit', submitHandler);
 };

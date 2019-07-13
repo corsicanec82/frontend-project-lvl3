@@ -6,6 +6,19 @@
         <title>RSS Reader</title>
     </head>
     <body>
+        <div class="modal fade" id="modalCenter" tabindex="-1" role="dialog" aria-labelledby="ModalCenterTitle" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title"></h5>
+                    </div>
+                    <div class="modal-body"></div>
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary" data-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
         <div class="container">
             <div class="jumbotron">
                 <h1>Form to add RSS feed</h1>
@@ -13,8 +26,9 @@
                 <form>
                     <div class="form-group row">
                         <div class="col">
-                            <label class="sr-only" for="inputRSS">Enter url to add rss feed</label>
-                            <input name="feedUrl" type="text" class="form-control" id="inputRSS" placeholder="Enter url to add rss feed">
+                            <div class="alert alert-danger d-none" role="alert"></div>
+                            <label class="sr-only" for="inputUrl">Enter url to add rss feed</label>
+                            <input name="inputUrl" type="text" class="form-control" id="inputUrl" placeholder="Enter url to add rss feed">
                         </div>
                         <div class="col align-self-end">
                             <button type="submit" class="btn btn-primary">Add feed</button>
