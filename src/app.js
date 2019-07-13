@@ -72,6 +72,7 @@ export default () => {
           state.diffs[url] = data.articles.filter(item => !_some(state.feeds[url].articles, item));
           state.feeds[url] = data;
         }
+      }).finally(() => {
         updateFeed(url);
       });
     }, 5000);
