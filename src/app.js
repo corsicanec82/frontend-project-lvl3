@@ -72,7 +72,7 @@ export default () => {
           return !_some(state.feeds[url].articles, article);
         });
         if (diffs.length !== 0) {
-          state.diffs[url] = data.articles.filter(item => !_some(state.feeds[url].articles, item));
+          state.diffs[url] = diffs;
           state.feeds[url] = data;
         }
       }).finally(() => {
