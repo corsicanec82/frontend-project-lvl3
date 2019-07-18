@@ -2,16 +2,14 @@ import isURL from 'validator/lib/isURL';
 import { watch } from 'melanke-watchjs';
 import _some from 'lodash/some';
 import _has from 'lodash/has';
+import _isEmpty from 'lodash/isEmpty';
 import axios from 'axios';
 import parse from './parser';
 import View from './view';
 
-const getFeedData = (url, validUrl = true) => {
-  if (!validUrl) {
-    return Promise.reject(new Error('Invalid link or feed already added'));
-  }
-  return axios(`https://cors-anywhere.herokuapp.com/${url}`).then(response => parse(response.data));
-};
+const getFeedData = url => (
+  axios(`https://cors-anywhere.herokuapp.com/${url}`).then(response => parse(response.data))
+);
 
 export default () => {
   const state = {
@@ -67,12 +65,12 @@ export default () => {
   const updateFeed = (url) => {
     setTimeout(() => {
       getFeedData(url).then((data) => {
-        const diffs = data.articles.filter((item) => {
-          const article = { title: item.title, description: item.description };
-          return !_some(state.feeds[url].articles, article);
+        const difference = data.articles.filter((item) => {
+          const articleData = { title: item.title, description: item.description };
+          return !_some(state.feeds[url].articles, articleData);
         });
-        if (diffs.length !== 0) {
-          state.diffs[url] = diffs;
+        if (!_isEmpty(difference)) {
+          state.diffs[url] = difference;
           state.feeds[url] = data;
         }
       }).finally(() => {
@@ -83,10 +81,15 @@ export default () => {
 
   const submitHandler = (e) => {
     e.preventDefault();
+    state.query.state = 'processing';
+    if (!state.validUrl) {
+      state.query.response = 'Invalid link or feed already added';
+      state.query.state = 'filed';
+      return;
+    }
     const formData = new FormData(e.target);
     const url = formData.get('inputUrl');
-    state.query.state = 'processing';
-    getFeedData(url, state.validUrl)
+    getFeedData(url)
       .then((data) => {
         state.feeds[url] = data;
         state.diffs[url] = null;
