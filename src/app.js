@@ -1,6 +1,5 @@
 import isURL from 'validator/lib/isURL';
 import { watch } from 'melanke-watchjs';
-import _some from 'lodash/some';
 import _has from 'lodash/has';
 import _isEmpty from 'lodash/isEmpty';
 import axios from 'axios';
@@ -66,8 +65,8 @@ export default () => {
     setTimeout(() => {
       getFeedData(url).then((data) => {
         const difference = data.articles.filter((item) => {
-          const articleData = { title: item.title, description: item.description };
-          return !_some(state.feeds[url].articles, articleData);
+          const isEqual = el => el.title === item.title && el.description === item.description;
+          return !state.feeds[url].articles.find(isEqual);
         });
         if (!_isEmpty(difference)) {
           state.diffs[url] = difference;
