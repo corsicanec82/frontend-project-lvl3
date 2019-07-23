@@ -2,12 +2,17 @@ import isURL from 'validator/lib/isURL';
 import { watch } from 'melanke-watchjs';
 import _has from 'lodash/has';
 import _isEmpty from 'lodash/isEmpty';
+import _differenceWith from 'lodash/differenceWith';
 import axios from 'axios';
 import parse from './parser';
 import View from './view';
 
 const getFeedData = url => (
   axios(`https://cors-anywhere.herokuapp.com/${url}`).then(response => parse(response.data))
+);
+
+const isEqualArticles = (article1, article2) => (
+  article1.title === article2.title && article1.description === article2.description
 );
 
 export default () => {
@@ -64,13 +69,10 @@ export default () => {
   const updateFeed = (url) => {
     setTimeout(() => {
       getFeedData(url).then((data) => {
-        const difference = data.articles.filter((item) => {
-          const isEqual = el => el.title === item.title && el.description === item.description;
-          return !state.feeds[url].articles.find(isEqual);
-        });
-        if (!_isEmpty(difference)) {
-          state.diffs[url] = difference;
+        const diff = _differenceWith(data.articles, state.feeds[url].articles, isEqualArticles);
+        if (!_isEmpty(diff)) {
           state.feeds[url] = data;
+          state.diffs[url] = diff;
         }
       }).finally(() => {
         updateFeed(url);
