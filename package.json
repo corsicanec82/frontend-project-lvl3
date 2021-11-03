@@ -57,7 +57,7 @@
     "bootstrap": "^4.3.1",
     "lodash": "^4.17.14",
     "melanke-watchjs": "^1.5.0",
-    "validator": "^11.0.0"
+    "validator": "^13.7.0"
   },
   "browserslist": [
     "last 2 version",
